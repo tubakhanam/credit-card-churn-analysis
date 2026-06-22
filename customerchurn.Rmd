@@ -1,0 +1,353 @@
+---
+title: "Credit Card Churn Analysis Using Logistic Regression and Power BI"
+author: "Tuba Khanam"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Executive Summary
+
+Customer churn refers to customers discontinuing the use of a company's products or services. In the banking industry, retaining customers is important because acquiring new customers is generally more expensive than retaining existing ones.
+
+This project analyzes credit card customer data to identify factors associated with customer churn and develops a Logistic Regression model to predict whether a customer is likely to leave the bank. Power BI is used to create an interactive dashboard for visualizing customer behavior and churn patterns.
+
+# Business Problem
+
+Customer attrition negatively impacts revenue and profitability. The objective of this project is to:
+
+- Understand customer churn behavior.
+- Identify factors influencing churn.
+- Build a predictive model for churn prediction.
+- Generate business recommendations for customer retention.
+
+# Loading Required Libraries
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+```
+
+# Data Loading
+
+```{r}
+churn <- read_excel("D:/New folder/Downloads/archive/BankChurners.xlsx")
+
+head(churn)
+```
+
+# Dataset Structure
+
+```{r}
+str(churn)
+```
+
+## Observation
+
+The dataset contains customer demographic, account, and transaction information.
+
+# Dataset Dimensions
+
+```{r}
+dim(churn)
+```
+
+## Observation
+
+The dataset contains 10,127 customer records and multiple customer attributes.
+
+# Missing Value Analysis
+
+```{r}
+colSums(is.na(churn))
+```
+
+## Observation
+
+The dataset does not contain significant missing values and is suitable for analysis.
+
+# Target Variable Analysis
+
+```{r}
+table(churn$Attrition_Flag)
+```
+
+```{r}
+prop.table(table(churn$Attrition_Flag))*100
+```
+
+## Observation
+
+Most customers remained with the bank, while a smaller percentage of customers churned.
+
+# Churn Distribution
+
+```{r}
+ggplot(churn,
+       aes(x = Attrition_Flag,
+           fill = Attrition_Flag)) +
+  geom_bar() +
+  labs(
+    title = "Customer Churn Distribution",
+    x = "Customer Status",
+    y = "Customer Count"
+  )
+```
+
+## Observation
+
+The dataset is imbalanced because the number of existing customers is substantially larger than the number of churned customers.
+
+# Data Preparation
+
+The target variable is converted into binary form.
+
+```{r}
+churn$Attrition_Flag <- ifelse(
+  churn$Attrition_Flag == "Attrited Customer",
+  1,
+  0
+)
+
+table(churn$Attrition_Flag)
+```
+
+Where:
+
+- 0 = Existing Customer
+- 1 = Attrited Customer
+
+# Exploratory Data Analysis
+
+## Customer Age Distribution
+
+```{r}
+ggplot(churn,
+       aes(x = Customer_Age)) +
+  geom_histogram(bins = 20) +
+  labs(
+    title = "Customer Age Distribution",
+    x = "Age",
+    y = "Count"
+  )
+```
+
+## Observation
+
+The majority of customers fall within the middle-age category.
+
+# Churn by Gender
+
+```{r}
+ggplot(churn,
+       aes(x = Gender,
+           fill = factor(Attrition_Flag))) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Churn by Gender",
+    x = "Gender",
+    fill = "Churn"
+  )
+```
+
+## Observation
+
+This chart compares churn patterns across genders.
+
+# Churn by Inactivity
+
+```{r}
+ggplot(churn,
+       aes(x = Months_Inactive_12_mon,
+           fill = factor(Attrition_Flag))) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Churn by Inactive Months",
+    x = "Months Inactive",
+    fill = "Churn"
+  )
+```
+
+## Observation
+
+Customers with higher inactivity levels appear more likely to churn.
+
+# Logistic Regression
+
+## Theory
+
+Logistic Regression is a supervised machine learning algorithm used for binary classification problems. It predicts the probability of an event occurring.
+
+In this project, Logistic Regression is used to predict whether a customer will churn.
+
+# Building the Logistic Regression Model
+
+```{r}
+model <- glm(
+  Attrition_Flag ~ Customer_Age +
+    Total_Trans_Amt +
+    Total_Trans_Ct +
+    Months_Inactive_12_mon,
+  data = churn,
+  family = "binomial"
+)
+
+summary(model)
+```
+
+# Model Interpretation
+
+The Logistic Regression model identified the following significant predictors:
+
+- Customer Age
+- Total Transaction Amount
+- Total Transaction Count
+- Months Inactive in Last 12 Months
+
+## Key Findings
+
+### Customer Age
+
+Older customers are slightly less likely to churn.
+
+### Total Transaction Count
+
+Customers who perform more transactions are less likely to churn.
+
+### Months Inactive
+
+Customers with higher inactivity are more likely to churn.
+
+### Total Transaction Amount
+
+Transaction amount is a statistically significant predictor of churn.
+
+# Model Predictions
+
+```{r}
+pred_prob <- predict(
+  model,
+  type = "response"
+)
+
+head(pred_prob)
+```
+
+# Customer Classification
+
+```{r}
+pred <- ifelse(
+  pred_prob > 0.5,
+  1,
+  0
+)
+
+head(pred)
+```
+
+# Confusion Matrix
+
+```{r}
+table(pred,
+      churn$Attrition_Flag)
+```
+
+## Interpretation
+
+The confusion matrix compares actual customer outcomes with model predictions.
+
+It provides information about:
+
+- Correctly predicted customers
+- Incorrectly predicted customers
+- Model performance
+
+# Model Accuracy
+
+```{r}
+accuracy <- mean(
+  pred == churn$Attrition_Flag
+)
+
+accuracy
+```
+
+## Observation
+
+The model achieved approximately 83% accuracy.
+
+This indicates that the model performs reasonably well in predicting customer retention behavior.
+
+# Business Insights
+
+The analysis generated the following insights:
+
+1. Customer inactivity is a strong indicator of churn.
+2. Customers with lower transaction activity are more likely to leave.
+3. Younger customers exhibit slightly higher churn tendencies.
+4. Customer engagement plays an important role in retention.
+
+# Power BI Dashboard
+
+## Dashboard Overview
+
+An interactive Power BI dashboard was developed to visualize customer churn patterns and support decision-making.
+
+Dashboard Components:
+
+- Total Customers KPI
+- Churned Customers KPI
+- Churn Rate KPI
+- Churn by Gender
+- Churn by Income Category
+- Churn by Card Category
+- Churn by Inactive Months
+
+Dashboard slicers were created for:
+
+- Gender
+- Income Category
+- Card Category
+
+These slicers allow users to interactively filter customer segments and explore churn behavior.
+
+## Power BI Dashboard
+
+### Dashboard Overview
+
+The Power BI dashboard provides an interactive view of customer churn patterns and key performance indicators.
+
+### Figure 1: Overall Dashboard
+
+```{r, echo=FALSE, OUT.WIDTH='100%', warning=FALSE}
+knitr::include_graphics("D:/New folder/Downloads/archive/Dashboard_overview.png")
+```
+
+### Figure 2: Filtered Dashboard
+```{r, echo=FALSE, OUT.WIDTH='100%', warning=FALSE}
+knitr::include_graphics("D:/New folder/Downloads/archive/Dashboard_filtered.png")
+```
+
+The dashboard allows users to filter customer data by gender, income category, and card category, enabling deeper analysis of churn behavior across customer segments.
+
+# Recommendations
+
+Based on the analysis, the following recommendations are proposed:
+
+1. Monitor inactive customers proactively.
+2. Develop retention campaigns targeting low-activity customers.
+3. Introduce loyalty programs to encourage customer engagement.
+4. Use predictive analytics to identify high-risk customers before they churn.
+
+# Conclusion
+
+This project used Logistic Regression in R and dashboard visualization in Power BI to analyze customer churn behavior.
+
+The model identified customer inactivity and transaction activity as important drivers of churn. The analysis demonstrated how predictive analytics can help organizations understand customer behavior and support data-driven retention strategies.
+
+The model achieved approximately 83% accuracy and provided actionable business insights for reducing customer attrition.
